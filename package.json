@@ -1,0 +1,29 @@
+{
+  "name": "nyanmo",
+  "version": "0.0.0",
+  "description": "",
+  "main": "lib/server.js",
+  "engines": {
+    "node": ">=0.6.0"
+  },
+  "dependencies": {
+    "async": ">=0.1.22",
+    "crc": ">=0.2.0",
+    "hiredis": ">=0.1.14",
+    "redis": ">=0.8.2"
+  },
+  "devDependencies": {
+    "mocha": "*",
+    "should": "*",
+    "dynamo": "*"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "author": "Allan Carroll",
+  "license": "MIT"
+}
