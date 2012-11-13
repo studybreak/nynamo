@@ -1,3 +1,4 @@
+var async = require('async');
 var assert = require('assert');
 var dynamo = require("dynamo");
 var should = require('should');
@@ -72,16 +73,16 @@ describe('dynamo', function () {
     db.updateTable({
       TableName: 'test',
       ProvisionedThroughput: {
-        ReadCapacityUnits: 10,
-        WriteCapacityUnits: 10
+        ReadCapacityUnits: 2,
+        WriteCapacityUnits: 2
       }
     }, function (err, data) {
       if (err) return done(err);
       var table = data.TableDescription;
       table.should.have.keys('CreationDateTime', 'ItemCount', 'KeySchema',
           'ProvisionedThroughput', 'TableName', 'TableStatus', 'TableSizeBytes');
-      table.ProvisionedThroughput.should.have.property('ReadCapacityUnits', 10);
-      table.ProvisionedThroughput.should.have.property('WriteCapacityUnits', 10);
+      table.ProvisionedThroughput.should.have.property('ReadCapacityUnits', 2);
+      table.ProvisionedThroughput.should.have.property('WriteCapacityUnits', 2);
       done();
     });
   });
@@ -98,5 +99,48 @@ describe('dynamo', function () {
       done();
     });
   });
+
+  it('should respect put capacity limits', function (done) {
+    this.timeout(3000);
+
+    setTimeout(function () {
+      async.map(['1', '2', '3'], function (id, callback) {
+        db.put('test', {id: id, name: 'Allan'}).save(function (err) {
+          return callback(null, err);
+        });
+      }, function (err, results) {
+        results.filter(function (err) { return err; }).should.have.length(1);
+      });
+    }, 1000);
+
+    setTimeout(function () {
+      db.put('test', {id: '1', name: 'Allan'}).save(function (err) {
+        should.not.exist(err);
+        done();
+      });
+    }, 2000);
+  });
+
+  it('should respect get capacity limits', function (done) {
+    this.timeout(3000);
+
+    setTimeout(function () {
+      async.map(['1', '1', '1'], function (id, callback) {
+        db.get('test', {id: id}).fetch(function (err) {
+          return callback(null, err);
+        });
+      }, function (err, results) {
+        results.filter(function (err) { return err; }).should.have.length(1);
+      });
+    }, 1000);
+
+    setTimeout(function () {
+      db.get('test', {id: '1'}).fetch(function (err) {
+        should.not.exist(err);
+        done();
+      });
+    }, 2000);
+  });
+
 
 });
