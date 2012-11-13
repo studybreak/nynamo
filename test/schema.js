@@ -26,15 +26,14 @@ describe('dynamo', function () {
   });
 
   it('should create a table', function (done) {
-    db.add({name: "test"}).save(function (err, table) {
-      done(err);
-    });
+    db.add({
+      name: "test",
+      throughput: {read: 10, write: 10}
+    }).save(done);
   });
 
   it('should create another table', function (done) {
-    db.add({name: "foobar"}).save(function (err, table) {
-      done(err);
-    });
+    db.add({name: "foobar"}).save(done);
   });
 
   it('should try to create an invalid table', function (done) {
@@ -63,26 +62,8 @@ describe('dynamo', function () {
       table.should.have.keys('CreationDateTime', 'KeySchema',
           'ProvisionedThroughput', 'TableName', 'TableStatus');
       table.should.have.property('TableName', 'test');
-      table.ProvisionedThroughput.should.have.property('ReadCapacityUnits', 3);
-      table.ProvisionedThroughput.should.have.property('WriteCapacityUnits', 5);
-      done();
-    });
-  });
-
-  it('should update a table', function (done) {
-    db.updateTable({
-      TableName: 'test',
-      ProvisionedThroughput: {
-        ReadCapacityUnits: 2,
-        WriteCapacityUnits: 2
-      }
-    }, function (err, data) {
-      if (err) return done(err);
-      var table = data.TableDescription;
-      table.should.have.keys('CreationDateTime', 'ItemCount', 'KeySchema',
-          'ProvisionedThroughput', 'TableName', 'TableStatus', 'TableSizeBytes');
-      table.ProvisionedThroughput.should.have.property('ReadCapacityUnits', 2);
-      table.ProvisionedThroughput.should.have.property('WriteCapacityUnits', 2);
+      table.ProvisionedThroughput.should.have.property('ReadCapacityUnits', 10);
+      table.ProvisionedThroughput.should.have.property('WriteCapacityUnits', 10);
       done();
     });
   });
@@ -95,7 +76,41 @@ describe('dynamo', function () {
     db.get('test', {id: '1'}).fetch(function (err, result) {
       result.should.have.keys(['id', 'name']);
       result.should.have.property('id', '1');
-      result.should.have.property('name', 'Allan');
+      result.should.have.property('name');
+      done();
+    });
+  });
+
+  it('should delete data', function (done) {
+    db.deleteItem({
+      TableName: 'test',
+      Key: {HashKeyElement:{S:'1'}},
+      ReturnValues: 'NONE'
+    }, done);
+  });
+
+  it('should delete data and return it', function (done) {
+    db.deleteItem({
+      TableName: 'test',
+      Key: {HashKeyElement:{S:'1'}},
+      ReturnValues: 'ALL_OLD'
+    }, done);
+  });
+
+  it('should update a table', function (done) {
+    db.updateTable({
+      TableName: 'test',
+      ProvisionedThroughput: {
+        ReadCapacityUnits: 1,
+        WriteCapacityUnits: 2
+      }
+    }, function (err, data) {
+      if (err) return done(err);
+      var table = data.TableDescription;
+      table.should.have.keys('CreationDateTime', 'ItemCount', 'KeySchema',
+          'ProvisionedThroughput', 'TableName', 'TableStatus', 'TableSizeBytes');
+      table.ProvisionedThroughput.should.have.property('ReadCapacityUnits', 1);
+      table.ProvisionedThroughput.should.have.property('WriteCapacityUnits', 2);
       done();
     });
   });
@@ -144,3 +159,14 @@ describe('dynamo', function () {
 
 
 });
+
+
+function repeat(pattern, count) {
+    if (count < 1) return '';
+    var result = '';
+    while (count > 0) {
+        if (count & 1) result += pattern;
+        count >>= 1, pattern += pattern;
+    }
+    return result;
+}
